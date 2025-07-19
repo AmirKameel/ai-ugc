@@ -1,99 +1,54 @@
-import { NextResponse } from "next/server";
-import { generateScript } from "./services";
-import { getSupabase } from "@/supabase/utils";
-
-export type RequestBody = {
-  productLink: string;
-  influencerId: string;
-
-  customerIntent: string;
-  productResearch: string;
-  influencerResearch: string;
-};
+import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const {
-      customerIntent,
-      productResearch,
-      influencerResearch,
-      productLink,
-      influencerId,
-    }: RequestBody = await request.json();
+    const { product_name, product_description, style = 'enthusiastic' } = await request.json();
 
-    if (
-      customerIntent === undefined ||
-      productResearch === undefined ||
-      influencerResearch === undefined
-    ) {
+    if (!product_name || !product_description) {
       return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 },
+        { error: 'product_name and product_description are required' },
+        { status: 400 }
       );
     }
 
-    const supabase = getSupabase();
+    // Generate a simple UGC script based on the product
+    const script = generateUGCScript(product_name, product_description, style);
 
-    // Check for existing script with same product and influencer
-    const { data: existingScript, error: fetchError } = await supabase
-      .from("scripts")
-      .select("*")
-      .eq("product_link", productLink)
-      .maybeSingle();
-
-    if (fetchError) {
-      console.error("Error checking for existing script:", fetchError);
-      return NextResponse.json(
-        { error: "Failed to check for existing script" },
-        { status: 500 },
-      );
-    }
-
-    // If we found an existing script, return it
-    if (existingScript) {
-      console.log("Found existing script for:", {
-        productLink,
-        influencerId,
-      });
-      return NextResponse.json(existingScript);
-    }
-
-    // No existing script found, generate a new one
-    console.log("Generating new script for:", {
-      productLink,
-      influencerId,
-    });
-    const script = await generateScript(
-      customerIntent,
-      productResearch,
-      influencerResearch,
-    );
-
-    const fullScript = script.script
-      .map((script) => script.content)
-      .join("\n");
-
-    // Store the new script
-    const { data, error } = await supabase
-      .from("scripts")
-      .upsert({
-        influencer_id: influencerId,
-        product_link: productLink,
-        structured_script: script.script,
-        full_script: fullScript,
-      })
-      .select();
-
-    if (error !== null) {
-      throw error;
-    }
-
-    return NextResponse.json(data[0]);
+    return NextResponse.json({ script });
   } catch (error) {
-    console.error("Error generating script:", error);
+    console.error('Error generating script:', error);
     return NextResponse.json(
-      { error: "Failed to generate script" },
-      { status: 500 },
+      { error: 'Failed to generate script' },
+      { status: 500 }
     );
   }
+}
+
+function generateUGCScript(productName: string, description: string, style: string): string {
+  const hooks = [
+    "Okay, I have to share this with you because",
+    "You guys, I'm obsessed with this",
+    "I wasn't expecting this, but",
+    "Can we talk about this for a second?",
+  ];
+
+  const transitions = [
+    "Here's the thing -",
+    "What I love about this is",
+    "The best part?",
+    "And honestly,",
+  ];
+
+  const closings = [
+    "You need to try this!",
+    "Seriously, check this out!",
+    "Trust me on this one!",
+    "You won't regret it!",
+  ];
+
+  const hook = hooks[Math.floor(Math.random() * hooks.length)];
+  const transition = transitions[Math.floor(Math.random() * transitions.length)];
+  const closing = closings[Math.floor(Math.random() * closings.length)];
+
+  return `${hook} ${productName} literally changed everything for me. ${transition} ${description} I've been using it for a while now and the results are incredible. ${closing}`;
 }

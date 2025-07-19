@@ -7,9 +7,15 @@ interface VideoPlayerProps {
   videoUrl: string;
   onTimeUpdate?: (currentTime: number) => void;
   className?: string;
+  autoPlay?: boolean;
 }
 
-export function VideoPlayer({ videoUrl, onTimeUpdate, className }: VideoPlayerProps) {
+export function VideoPlayer({ 
+  videoUrl, 
+  onTimeUpdate, 
+  className,
+  autoPlay = false 
+}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -31,6 +37,8 @@ export function VideoPlayer({ videoUrl, onTimeUpdate, className }: VideoPlayerPr
       className={cn("w-full h-full object-cover", className)}
       controls
       playsInline
+      autoPlay={autoPlay}
+      muted={autoPlay}
     />
   );
 }
